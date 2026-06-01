@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taco Catcher</title>
+
+<style>
+body{
+    margin:0;
+    background:#f2f2f2;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+    margin:auto;
+    background:#87CEEB;
+}
+
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    font-size:24px;
+    font-weight:bold;
+}
+
+#message{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:48px;
+    font-weight:bold;
+    display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+🌮 Puntos: <span id="score">0</span>
+<br>
+❤️ Vidas: <span id="lives">3</span>
+</div>
+
+<div id="message"></div>
+
+<canvas id="game" width="400" height="700"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const scoreText = document.getElementById("score");
+const livesText = document.getElementById("lives");
+const message = document.getElementById("message");
+
+let gameRunning = true;
+
+let player = {
+    x:180,
+    y:620,
+    w:50,
+    h:50,
+    speed:8
+};
+
+let tacos = [];
+let chiles = [];
+
+let score = 0;
+let lives = 3;
+let fallSpeed = 3;
+
+let leftPressed = false;
+let rightPressed = false;
+
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="ArrowLeft") leftPressed=true;
+    if(e.key==="ArrowRight") rightPressed=true;
+});
+
+document.addEventListener("keyup",(e)=>{
+    if(e.key==="ArrowLeft") leftPressed=false;
+    if(e.key==="ArrowRight") rightPressed=false;
+});
+
+canvas.addEventListener("touchmove",(e)=>{
+    const rect = canvas.getBoundingClientRect();
+    player.x = e.touches[0].clientX - rect.left - player.w/2;
+});
+
+function spawnTaco(){
+    tacos.push({
+        x:Math.random()*360,
+        y:-30,
+        w:30,
+        h:30
+    });
+}
+
+function spawnChile(){
+    chiles.push({
+        x:Math.random()*360,
+        y:-30,
+        w:30,
+        h:30
+    });
+}
+
+setInterval(()=>{
+    if(gameRunning) spawnTaco();
+},1000);
+
+setInterval(()=>{
+    if(gameRunning) spawnChile();
+},1800);
+
+function collision(a,b){
+    return (
+        a.x < b.x+b.w &&
+        a.x+a.w > b.x &&
+        a.y < b.y+b.h &&
+        a.y+a.h > b.y
+    );
+}
+
+function update(){
+
+    if(!gameRunning) return;
+
+    if(leftPressed) player.x -= player.speed;
+    if(rightPressed) player.x += player.speed;
+
+    if(player.x < 0) player.x = 0;
+    if(player.x > canvas.width-player.w)
+        player.x = canvas.width-player.w;
+
+    tacos.forEach(t=>t.y += fallSpeed);
+    chiles.forEach(c=>c.y += fallSpeed);
+
+    tacos = tacos.filter(t=>{
+
+        if(collision(player,t)){
+            score++;
+
+            if(score % 10 === 0){
+                fallSpeed += 1;
+            }
+
+            scoreText.textContent = score;
+            return false;
+        }
+
+        return t.y < canvas.height+50;
+    });
+
+    chiles = chiles.filter(c=>{
+
+        if(collision(player,c)){
+            lives--;
+            livesText.textContent = lives;
+
+            if(lives <= 0){
+                gameOver();
+            }
+
+            return false;
+        }
+
+        return c.y < canvas.height+50;
+    });
+
+    if(score >= 50){
+        win();
+    }
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="#4CAF50";
+    ctx.fillRect(player.x,player.y,player.w,player.h);
+
+    ctx.font="24px Arial";
+
+    tacos.forEach(t=>{
+        ctx.fillText("🌮",t.x,t.y);
+    });
+
+    chiles.forEach(c=>{
+        ctx.fillText("🌶️",c.x,c.y);
+    });
+}
+
+function gameOver(){
+    gameRunning = false;
+    message.style.display = "block";
+    message.textContent = "💀 GAME OVER";
+}
+
+function win(){
+    gameRunning = false;
+    message.style.display = "block";
+    message.textContent = "🏆 GANASTE";
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+
+</body>
+</html>
